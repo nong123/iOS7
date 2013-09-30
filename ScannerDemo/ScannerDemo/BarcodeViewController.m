@@ -54,13 +54,20 @@
     
     _previewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:_session];
     [_previewLayer setVideoGravity:AVLayerVideoGravityResizeAspectFill];
-    
     CALayer *rootLayer = [[self view] layer];
     [rootLayer setMasksToBounds:YES];
-    [_previewLayer setFrame:rootLayer.bounds];
     [rootLayer insertSublayer:_previewLayer atIndex:0];
-    
     [_session startRunning];
+    
+    CGSize size = self.view.layer.bounds.size;
+    
+    if (UIInterfaceOrientationIsLandscape(self.interfaceOrientation)) {
+        [_previewLayer setFrame:CGRectMake(0, 0, size.height, size.width)];
+    } else {
+        [_previewLayer setFrame:CGRectMake(0, 0, size.width, size.height)];
+    }
+    
+    [self setVideoOrientation:self.interfaceOrientation];
 }
 
 #pragma mark -
@@ -70,10 +77,18 @@
 {
     NSLog(@"metadataObjects: %@", metadataObjects);
     
+    NSString *stringValue;
+    
+    if ([metadataObjects count] > 0) {
+        AVMetadataMachineReadableCodeObject *metadataObject = [metadataObjects objectAtIndex:0];
+        stringValue = metadataObject.stringValue;
+    }
+    
     [_session stopRunning];
+    
     [self dismissViewControllerAnimated:YES completion:^{
         UIAlertView *alert = [[UIAlertView alloc] initWithTitle:nil
-                                                        message:[metadataObjects description]
+                                                        message:stringValue
                                                        delegate:nil
                                               cancelButtonTitle:@"OK"
                                               otherButtonTitles:nil, nil];
@@ -101,6 +116,12 @@
         [_previewLayer setFrame:CGRectMake(0, 0, size.height, size.width)];
     }
     
+    [self setVideoOrientation:toInterfaceOrientation];
+}
+
+// 防止影像旋转90°
+- (void)setVideoOrientation:(UIInterfaceOrientation)toInterfaceOrientation
+{
     AVCaptureVideoOrientation videoOrientation = AVCaptureVideoOrientationPortrait;
     
     switch (toInterfaceOrientation) {
